@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Building2, Clock, Bookmark, BookmarkCheck, Filter } from 'lucide-react';
+import { Search, MapPin, Building2, Clock, Bookmark, BookmarkCheck, Filter, ExternalLink, Globe } from 'lucide-react';
 import { WELDING_TYPES, EU_COUNTRIES, JOB_TYPES } from '@/lib/constants';
 
 const SAMPLE_JOBS = [
@@ -45,6 +45,48 @@ const SAMPLE_JOBS = [
     isSaved: false,
   },
 ];
+
+// ──── MojeDelo Partner Card ────
+function MojeDeloCard() {
+  return (
+    <a
+      href='https://www.mojedelo.com/prosta-delovna-mesta/varilec'
+      target='_blank'
+      rel='noopener noreferrer'
+      className='block bg-white rounded-xl border-l-4 border-l-orange-500 border border-gray-100 p-5 hover:border-orange-300 hover:shadow-lg transition-all duration-200 group'
+    >
+      <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
+        {/* Left — Info */}
+        <div className='flex-1 space-y-2'>
+          <div className='flex items-center gap-2 flex-wrap'>
+            <span className='font-bold text-orange-600 text-lg tracking-tight'>MojeDelo.com</span>
+            <Badge className='bg-orange-100 text-orange-700 border-orange-200 text-[10px] font-medium hover:bg-orange-100'>
+              <Globe className='h-3 w-3 mr-1' />
+              External Partner
+            </Badge>
+          </div>
+          <p className='font-semibold text-gray-800 leading-snug'>
+            More Welding Jobs on MojeDelo.com
+          </p>
+          <p className='text-sm text-gray-500 leading-relaxed'>
+            Browse <span className='font-medium text-gray-700'>varilec</span> (welder) positions on Slovenia&apos;s largest job portal — thousands of verified openings updated daily.
+          </p>
+        </div>
+
+        {/* Right — CTA */}
+        <div className='flex flex-col items-start sm:items-end gap-2 sm:flex-shrink-0'>
+          <Button className='bg-orange-500 hover:bg-orange-600 text-white gap-1.5 transition-colors shadow-sm'>
+            Browse Jobs on MojeDelo
+            <ExternalLink className='h-4 w-4' />
+          </Button>
+          <span className='text-[11px] text-gray-400 group-hover:text-orange-500 transition-colors'>
+            Opens mojedelo.com in a new tab
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
 
 export function JobsListPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,40 +144,48 @@ export function JobsListPage() {
       {/* Results */}
       <div className='space-y-3'>
         <p className='text-sm text-gray-500'>{SAMPLE_JOBS.length} jobs found</p>
-        {SAMPLE_JOBS.map((job) => (
-          <div key={job.id} className='bg-white rounded-xl border border-gray-100 p-5 hover:border-blue-200 hover:shadow-md transition-all'>
-            <div className='flex items-start justify-between gap-4'>
-              <div className='flex-1 space-y-2'>
-                <Link to={ROUTES.JOB_DETAIL(job.id)} className='text-lg font-semibold text-gray-800 hover:text-blue-500 transition-colors'>
-                  {job.title}
-                </Link>
-                <div className='flex flex-wrap items-center gap-3 text-sm text-gray-500'>
-                  <span className='flex items-center gap-1'><Building2 className='h-3.5 w-3.5' />{job.company}</span>
-                  <span className='flex items-center gap-1'><MapPin className='h-3.5 w-3.5' />{job.location}</span>
-                  <span className='flex items-center gap-1'><Clock className='h-3.5 w-3.5' />{job.postedAt}</span>
+        {SAMPLE_JOBS.map((job, index) => (
+          <div key={job.id}>
+            <div className='bg-white rounded-xl border border-gray-100 p-5 hover:border-blue-200 hover:shadow-md transition-all'>
+              <div className='flex items-start justify-between gap-4'>
+                <div className='flex-1 space-y-2'>
+                  <Link to={ROUTES.JOB_DETAIL(job.id)} className='text-lg font-semibold text-gray-800 hover:text-blue-500 transition-colors'>
+                    {job.title}
+                  </Link>
+                  <div className='flex flex-wrap items-center gap-3 text-sm text-gray-500'>
+                    <span className='flex items-center gap-1'><Building2 className='h-3.5 w-3.5' />{job.company}</span>
+                    <span className='flex items-center gap-1'><MapPin className='h-3.5 w-3.5' />{job.location}</span>
+                    <span className='flex items-center gap-1'><Clock className='h-3.5 w-3.5' />{job.postedAt}</span>
+                  </div>
+                  <div className='flex flex-wrap gap-2 mt-2'>
+                    <Badge variant='outline' className='text-xs'>{job.jobType}</Badge>
+                    <Badge variant='outline' className='text-xs'>{job.experienceLevel}</Badge>
+                    {job.weldingTypes.map((w) => (
+                      <Badge key={w} variant='secondary' className='text-xs'>{w}</Badge>
+                    ))}
+                  </div>
+                  {job.salaryMin && job.salaryMax && (
+                    <p className='text-sm font-medium text-emerald-600 mt-1'>
+                      &euro;{job.salaryMin.toLocaleString()} - &euro;{job.salaryMax.toLocaleString()} /month
+                    </p>
+                  )}
                 </div>
-                <div className='flex flex-wrap gap-2 mt-2'>
-                  <Badge variant='outline' className='text-xs'>{job.jobType}</Badge>
-                  <Badge variant='outline' className='text-xs'>{job.experienceLevel}</Badge>
-                  {job.weldingTypes.map((w) => (
-                    <Badge key={w} variant='secondary' className='text-xs'>{w}</Badge>
-                  ))}
+                <div className='flex flex-col items-end gap-2'>
+                  <button onClick={() => toggleSave(job.id)} className='text-gray-400 hover:text-blue-500 transition-colors'>
+                    {savedJobs.has(job.id) ? <BookmarkCheck className='h-5 w-5 text-blue-500' /> : <Bookmark className='h-5 w-5' />}
+                  </button>
+                  <Link to={ROUTES.JOB_DETAIL(job.id)}>
+                    <Button size='sm' className='bg-blue-500 hover:bg-blue-600 text-white'>View Details</Button>
+                  </Link>
                 </div>
-                {job.salaryMin && job.salaryMax && (
-                  <p className='text-sm font-medium text-emerald-600 mt-1'>
-                    &euro;{job.salaryMin.toLocaleString()} - &euro;{job.salaryMax.toLocaleString()} /month
-                  </p>
-                )}
-              </div>
-              <div className='flex flex-col items-end gap-2'>
-                <button onClick={() => toggleSave(job.id)} className='text-gray-400 hover:text-blue-500 transition-colors'>
-                  {savedJobs.has(job.id) ? <BookmarkCheck className='h-5 w-5 text-blue-500' /> : <Bookmark className='h-5 w-5' />}
-                </button>
-                <Link to={ROUTES.JOB_DETAIL(job.id)}>
-                  <Button size='sm' className='bg-blue-500 hover:bg-blue-600 text-white'>View Details</Button>
-                </Link>
               </div>
             </div>
+            {/* MojeDelo partner card after the 2nd job */}
+            {index === 1 && (
+              <div className='mt-3'>
+                <MojeDeloCard />
+              </div>
+            )}
           </div>
         ))}
       </div>
