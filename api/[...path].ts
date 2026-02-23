@@ -1,9 +1,10 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from './_lib/db';
 import { hashPassword, comparePassword } from './_lib/hash';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, getUserFromRequest } from './_lib/auth';
 import { ok, err, handleCors } from './_lib/response';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (handleCors(req, res)) return;
 
@@ -87,7 +88,7 @@ async function handleRegister(req: any, res: any) {
   const { email, password, firstName, lastName, phone } = req.body;
   if (!email || !password || !firstName || !lastName) return err(res, 'All fields are required');
   const db = getDb();
-  if (db.findOne('users', (u) => u.email === email)) return err(res, 'Email already registered', 409);
+  if (db.findOne('users', (u: any) => u.email === email)) return err(res, 'Email already registered', 409);
   const password_hash = await hashPassword(password);
   const verification_code = String(Math.floor(100000 + Math.random() * 900000));
   const result = db.insert('users', {
@@ -102,7 +103,7 @@ async function handleRegister(req: any, res: any) {
     avatar_url: null, resume_url: null,
   });
   const userId = result.lastInsertRowid;
-  const user = db.findOne('users', (u) => u.id === userId);
+  const user = db.findOne('users', (u: any) => u.id === userId);
 
   const accessToken = generateAccessToken(userId);
   const refreshToken = generateRefreshToken(userId);
@@ -115,7 +116,7 @@ async function handleLogin(req: any, res: any) {
   const { email, password } = req.body;
   if (!email || !password) return err(res, 'Email and password are required');
   const db = getDb();
-  const user = db.findOne('users', (u) => u.email === email);
+  const user = db.findOne('users', (u: any) => u.email === email);
   if (!user) return err(res, 'Invalid email or password', 401);
   if (!(await comparePassword(password, user.password_hash))) return err(res, 'Invalid email or password', 401);
   const accessToken = generateAccessToken(user.id);
@@ -130,12 +131,12 @@ async function handleVerify(req: any, res: any) {
   const { code } = req.body;
   if (!code) return err(res, 'Verification code is required');
   const db = getDb();
-  const user = db.findOne('users', (u) => u.id === auth.userId);
+  const user = db.findOne('users', (u: any) => u.id === auth.userId);
   if (!user) return err(res, 'User not found', 404);
   if (user.is_verified) return ok(res, { message: 'Already verified' });
   if (user.verification_code !== String(code)) return err(res, 'Invalid verification code');
   if (user.verification_expires_at && new Date() > new Date(user.verification_expires_at)) return err(res, 'Verification code has expired');
-  db.update('users', (u) => u.id === auth.userId, { is_verified: 1, verification_code: null, verification_expires_at: null });
+  db.update('users', (u: any) => u.id === auth.userId, { is_verified: 1, verification_code: null, verification_expires_at: null });
   return ok(res, { message: 'Email verified successfully', isVerified: true });
 }
 
@@ -144,7 +145,7 @@ async function handleMe(req: any, res: any, method: string) {
   if (!auth) return err(res, 'Not authenticated', 401);
   const db = getDb();
   if (method === 'GET') {
-    const user = db.findOne('users', (u) => u.id === auth.userId);
+    const user = db.findOne('users', (u: any) => u.id === auth.userId);
     if (!user) return err(res, 'User not found', 404);
     return ok(res, safeUser(user));
   }
@@ -165,8 +166,8 @@ async function handleMe(req: any, res: any, method: string) {
     if (b.willingToRelocate !== undefined) updates.willing_to_relocate = b.willingToRelocate ? 1 : 0;
     if (b.preferredCountries !== undefined) updates.preferred_countries = JSON.stringify(b.preferredCountries);
     if (Object.keys(updates).length === 0) return err(res, 'No valid fields');
-    db.update('users', (u) => u.id === auth.userId, updates);
-    const user = db.findOne('users', (u) => u.id === auth.userId);
+    db.update('users', (u: any) => u.id === auth.userId, updates);
+    const user = db.findOne('users', (u: any) => u.id === auth.userId);
     return ok(res, safeUser(user));
   }
   return err(res, 'Method not allowed', 405);
@@ -178,9 +179,9 @@ async function handleRefresh(req: any, res: any) {
   try {
     const decoded = verifyRefreshToken(refreshToken);
     const db = getDb();
-    const stored = db.findOne('refresh_tokens', (t) => t.token === refreshToken);
+    const stored = db.findOne('refresh_tokens', (t: any) => t.token === refreshToken);
     if (!stored) return err(res, 'Invalid refresh token', 401);
-    db.remove('refresh_tokens', (t) => t.token === refreshToken);
+    db.remove('refresh_tokens', (t: any) => t.token === refreshToken);
     const newAccess = generateAccessToken(decoded.userId);
     const newRefresh = generateRefreshToken(decoded.userId);
     db.insert('refresh_tokens', { user_id: decoded.userId, token: newRefresh, expires_at: new Date(Date.now() + 7 * 86400000).toISOString() });
@@ -190,7 +191,7 @@ async function handleRefresh(req: any, res: any) {
 
 async function handleLogout(req: any, res: any) {
   const { refreshToken } = req.body;
-  if (refreshToken) getDb().remove('refresh_tokens', (t) => t.token === refreshToken);
+  if (refreshToken) getDb().remove('refresh_tokens', (t: any) => t.token === refreshToken);
   return ok(res, { message: 'Logged out' });
 }
 
@@ -210,27 +211,27 @@ function parseJob(j: any) {
 async function handleJobs(req: any, res: any) {
   const db = getDb();
   const { search, country, jobType, weldingType, limit = '20', offset = '0' } = req.query as any;
-  let jobs = db.findAll('jobs', (j) => j.isActive);
+  let jobs = db.findAll('jobs', (j: any) => j.isActive);
   if (search) {
     const s = search.toLowerCase();
-    jobs = jobs.filter((j) => j.title.toLowerCase().includes(s) || j.company.toLowerCase().includes(s) || (j.description || '').toLowerCase().includes(s));
+    jobs = jobs.filter((j: any) => j.title.toLowerCase().includes(s) || j.company.toLowerCase().includes(s) || (j.description || '').toLowerCase().includes(s));
   }
-  if (country) jobs = jobs.filter((j) => j.country === country);
-  if (jobType) jobs = jobs.filter((j) => j.jobType === jobType);
+  if (country) jobs = jobs.filter((j: any) => j.country === country);
+  if (jobType) jobs = jobs.filter((j: any) => j.jobType === jobType);
   if (weldingType) {
-    jobs = jobs.filter((j) => {
+    jobs = jobs.filter((j: any) => {
       const types = typeof j.weldingTypes === 'string' ? JSON.parse(j.weldingTypes) : (j.weldingTypes || []);
       return types.includes(weldingType);
     });
   }
   const total = jobs.length;
-  jobs.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  jobs.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
   jobs = jobs.slice(Number(offset), Number(offset) + Number(limit));
   return ok(res, { jobs: jobs.map(parseJob), total });
 }
 
 async function handleJobById(req: any, res: any, id: string) {
-  const job = getDb().findOne('jobs', (j) => j.id === parseInt(id));
+  const job = getDb().findOne('jobs', (j: any) => j.id === parseInt(id));
   if (!job) return err(res, 'Job not found', 404);
   return ok(res, parseJob(job));
 }
@@ -239,9 +240,9 @@ async function handleSavedJobs(req: any, res: any) {
   const auth = getUserFromRequest(req);
   if (!auth) return err(res, 'Not authenticated', 401);
   const db = getDb();
-  const saved = db.findAll('saved_jobs', (s) => s.user_id === auth.userId);
-  const jobs = saved.map((s) => {
-    const job = db.findOne('jobs', (j) => j.id === s.job_id);
+  const saved = db.findAll('saved_jobs', (s: any) => s.user_id === auth.userId);
+  const jobs = saved.map((s: any) => {
+    const job = db.findOne('jobs', (j: any) => j.id === s.job_id);
     return job ? { ...parseJob(job), savedAt: s.created_at } : null;
   }).filter(Boolean);
   return ok(res, jobs);
@@ -252,9 +253,9 @@ async function handleToggleSave(req: any, res: any, jobId: string) {
   if (!auth) return err(res, 'Not authenticated', 401);
   const db = getDb();
   const jId = parseInt(jobId);
-  const existing = db.findOne('saved_jobs', (s) => s.job_id === jId && s.user_id === auth.userId);
+  const existing = db.findOne('saved_jobs', (s: any) => s.job_id === jId && s.user_id === auth.userId);
   if (existing) {
-    db.remove('saved_jobs', (s) => s.job_id === jId && s.user_id === auth.userId);
+    db.remove('saved_jobs', (s: any) => s.job_id === jId && s.user_id === auth.userId);
     return ok(res, { saved: false });
   }
   db.insert('saved_jobs', { job_id: jId, user_id: auth.userId });
@@ -269,27 +270,26 @@ async function handleApplications(req: any, res: any, method: string) {
   const db = getDb();
 
   if (method === 'GET') {
-    const apps = db.findAll('applications', (a) => a.user_id === auth.userId);
-    return ok(res, apps.map((a) => {
-      const job = db.findOne('jobs', (j) => j.id === a.job_id);
+    const apps = db.findAll('applications', (a: any) => a.user_id === auth.userId);
+    return ok(res, apps.map((a: any) => {
+      const job = db.findOne('jobs', (j: any) => j.id === a.job_id);
       return {
         ...a,
         jobTitle: job?.title, company: job?.company, location: job?.location,
         country: job?.country, jobType: job?.jobType,
         jobWeldingTypes: job ? (typeof job.weldingTypes === 'string' ? JSON.parse(job.weldingTypes) : job.weldingTypes) : [],
       };
-    }).sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')));
+    }).sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || '')));
   }
 
   if (method === 'POST') {
     const { jobId, coverLetter } = req.body;
     if (!jobId) return err(res, 'Job ID is required');
-    const existing = db.findOne('applications', (a) => a.job_id === jobId && a.user_id === auth.userId);
+    const existing = db.findOne('applications', (a: any) => a.job_id === jobId && a.user_id === auth.userId);
     if (existing) return err(res, 'Already applied', 409);
     const result = db.insert('applications', { job_id: jobId, user_id: auth.userId, status: 'applied', cover_letter: coverLetter || null });
-    // Increment application count
-    const job = db.findOne('jobs', (j) => j.id === jobId);
-    if (job) db.update('jobs', (j) => j.id === jobId, { applicationCount: (job.applicationCount || 0) + 1 });
+    const job = db.findOne('jobs', (j: any) => j.id === jobId);
+    if (job) db.update('jobs', (j: any) => j.id === jobId, { applicationCount: (job.applicationCount || 0) + 1 });
     return ok(res, { id: result.lastInsertRowid, status: 'applied' }, 201);
   }
 
@@ -301,25 +301,25 @@ async function handleApplications(req: any, res: any, method: string) {
 async function handleNotifications(req: any, res: any) {
   const auth = getUserFromRequest(req);
   if (!auth) return err(res, 'Not authenticated', 401);
-  return ok(res, getDb().findAll('notifications', (n) => n.user_id === auth.userId).sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 50));
+  return ok(res, getDb().findAll('notifications', (n: any) => n.user_id === auth.userId).sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 50));
 }
 
 async function handleUnreadCount(req: any, res: any) {
   const auth = getUserFromRequest(req);
   if (!auth) return err(res, 'Not authenticated', 401);
-  return ok(res, { count: getDb().count('notifications', (n) => n.user_id === auth.userId && !n.is_read) });
+  return ok(res, { count: getDb().count('notifications', (n: any) => n.user_id === auth.userId && !n.is_read) });
 }
 
 async function handleReadAll(req: any, res: any) {
   const auth = getUserFromRequest(req);
   if (!auth) return err(res, 'Not authenticated', 401);
-  getDb().update('notifications', (n) => n.user_id === auth.userId, { is_read: 1 });
+  getDb().update('notifications', (n: any) => n.user_id === auth.userId, { is_read: 1 });
   return ok(res, { message: 'All marked as read' });
 }
 
 async function handleNotifRead(req: any, res: any, id: string) {
   const auth = getUserFromRequest(req);
   if (!auth) return err(res, 'Not authenticated', 401);
-  getDb().update('notifications', (n) => n.id === parseInt(id) && n.user_id === auth.userId, { is_read: 1 });
+  getDb().update('notifications', (n: any) => n.id === parseInt(id) && n.user_id === auth.userId, { is_read: 1 });
   return ok(res, { message: 'Marked as read' });
 }
