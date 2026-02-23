@@ -98,3 +98,12 @@ export interface DashboardStats {
   profileCompleteness: number;
   matchingJobs: number;
 }
+
+export interface NewsArticle {
+  title: string;
+  description: string;
+  url: string;
+  image: string | null;
+  publishedAt: string;
+  source: string;
+}

@@ -4,6 +4,7 @@ import { ROUTES } from '@/router/routes';
 import { Briefcase, FileText, Bookmark, UserCircle, ArrowRight, Clock, MapPin, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { WeldingNews } from '@/components/dashboard/WeldingNews';
 
 const STAT_CARDS = [
   { label: 'Total Applications', value: '0', icon: FileText, color: 'bg-blue-50 text-blue-500', link: ROUTES.APPLICATIONS },
@@ -95,6 +96,9 @@ export function DashboardPage() {
           </div>
         </Link>
       </div>
+
+      {/* Welding Industry News */}
+      <WeldingNews />
 
       {/* Recent Jobs */}
       <div className='bg-white rounded-xl border border-gray-100 p-6'>

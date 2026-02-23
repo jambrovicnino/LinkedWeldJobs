@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.routes';
 import jobRoutes from './routes/job.routes';
 import applicationRoutes from './routes/application.routes';
 import notificationRoutes from './routes/notification.routes';
+import newsRoutes from './routes/news.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/news', newsRoutes);
 
 // Health
 app.get('/api/health', (_req, res) => {
