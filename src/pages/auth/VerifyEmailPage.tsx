@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Flame, Loader2 } from 'lucide-react';
+import { Flame, Loader2, Mail } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
 
 export function VerifyEmailPage() {
-  const { verifyEmail, verificationCode, isLoading, logout } = useAuthStore();
+  const { verifyEmail, user, isLoading, logout } = useAuthStore();
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -37,25 +37,27 @@ export function VerifyEmailPage() {
         <div className='bg-white rounded-xl border border-gray-200 shadow-xl shadow-blue-500/5 p-6'>
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div className='space-y-2 text-center'>
-              <h2 className='text-2xl font-bold'>Verify your email</h2>
-              <p className='text-sm text-muted-foreground'>Enter the verification code sent to your email</p>
+              <div className='mx-auto w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2'>
+                <Mail className='h-6 w-6 text-blue-600' />
+              </div>
+              <h2 className='text-2xl font-bold'>Check your email</h2>
+              <p className='text-sm text-muted-foreground'>
+                We sent a 6-digit verification code to{' '}
+                <strong className='text-foreground'>{user?.email || 'your email'}</strong>
+              </p>
             </div>
-            {verificationCode && (
-              <Alert>
-                <AlertDescription>
-                  Demo code: <strong className='font-mono'>{verificationCode}</strong>
-                </AlertDescription>
-              </Alert>
-            )}
             {error && <Alert variant='destructive'><AlertDescription>{error}</AlertDescription></Alert>}
             <div className='space-y-2'>
               <Label htmlFor='code'>Verification Code</Label>
-              <Input id='code' value={code} onChange={(e) => setCode(e.target.value)} placeholder='Enter 6-digit code' className='text-center text-lg tracking-widest' />
+              <Input id='code' value={code} onChange={(e) => setCode(e.target.value)} placeholder='Enter 6-digit code' className='text-center text-lg tracking-widest' maxLength={6} />
             </div>
-            <Button type='submit' variant='accent' className='w-full' disabled={isLoading}>
+            <Button type='submit' variant='accent' className='w-full' disabled={isLoading || code.length < 6}>
               {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               Verify Email
             </Button>
+            <p className='text-xs text-center text-muted-foreground'>
+              Didn't receive the code? Check your spam folder.
+            </p>
             <div className='text-center'>
               <button type='button' onClick={() => { logout(); navigate(ROUTES.LOGIN); }}
                 className='text-sm text-muted-foreground hover:text-accent-500'>

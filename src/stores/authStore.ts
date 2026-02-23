@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const { data } = await api.post('/auth/register', payload);
-          const { user, tokens, verificationCode } = data.data;
+          const { user, tokens } = data.data;
           set({
             user,
             token: tokens.accessToken,
@@ -63,7 +63,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isVerified: false,
             isLoading: false,
-            verificationCode: verificationCode || null,
+            verificationCode: null,
           });
         } catch (error) {
           set({ isLoading: false });
