@@ -1,0 +1,16 @@
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  VERIFY: '/verify',
+  DASHBOARD: '/dashboard',
+  JOBS: '/jobs',
+  JOB_DETAIL: (id: string | number) => `/jobs/${id}`,
+  APPLICATIONS: '/applications',
+  APPLICATION_DETAIL: (id: string | number) => `/applications/${id}`,
+  SAVED_JOBS: '/saved-jobs',
+  PROFILE: '/profile',
+  NOTIFICATIONS: '/notifications',
+  SETTINGS: '/settings',
+} as const;

@@ -1,0 +1,14 @@
+node_modules
+dist
+*.db
+*.json.bak
+linkedweldjobs.json
+.env
+.env.example
+.env.local
+.DS_Store
+.claude/
+metadata.json
+server.ts
+tsc_output.txt
+build_output.txt
