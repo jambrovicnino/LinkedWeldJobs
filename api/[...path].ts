@@ -2,7 +2,6 @@ import { getDb } from './_lib/db';
 import { hashPassword, comparePassword } from './_lib/hash';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, getUserFromRequest } from './_lib/auth';
 import { ok, err, handleCors } from './_lib/response';
-import { sendVerificationEmail } from './_lib/email';
 
 export default async function handler(req: any, res: any) {
   try {
@@ -105,16 +104,11 @@ async function handleRegister(req: any, res: any) {
   const userId = result.lastInsertRowid;
   const user = db.findOne('users', (u) => u.id === userId);
 
-  // Send verification email (non-blocking)
-  sendVerificationEmail(email, verification_code, firstName).catch((e) => {
-    console.error('Email send failed:', e);
-  });
-
   const accessToken = generateAccessToken(userId);
   const refreshToken = generateRefreshToken(userId);
   db.insert('refresh_tokens', { user_id: userId, token: refreshToken, expires_at: new Date(Date.now() + 7 * 86400000).toISOString() });
-  db.insert('notifications', { user_id: userId, type: 'system', title: 'Welcome to LinkedWeldJobs!', message: 'Please verify your email to get started.', is_read: 0 });
-  return ok(res, { user: safeUser(user), tokens: { accessToken, refreshToken } }, 201);
+  db.insert('notifications', { user_id: userId, type: 'system', title: 'Welcome to LinkedWeldJobs!', message: 'Your account is ready. Start browsing welding jobs!', is_read: 0 });
+  return ok(res, { user: safeUser(user), tokens: { accessToken, refreshToken }, verificationCode: verification_code }, 201);
 }
 
 async function handleLogin(req: any, res: any) {

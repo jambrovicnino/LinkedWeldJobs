@@ -3,7 +3,6 @@ import { createUser, findUserByEmail, findUserById, findUserByVerificationCode, 
 import { hashPassword, comparePassword } from '../utils/hash';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { sendVerificationEmail } from '../utils/email';
 
 const router = Router();
 
@@ -52,11 +51,6 @@ router.post('/register', async (req: Request, res: Response) => {
       resumeUrl: null,
     });
 
-    // Send verification email
-    sendVerificationEmail(email, verificationCode, firstName).catch(err => {
-      console.error('Email send failed:', err);
-    });
-
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
     storeRefreshToken(user.id, refreshToken);
@@ -65,6 +59,7 @@ router.post('/register', async (req: Request, res: Response) => {
       data: {
         user: safeUser(user),
         tokens: { accessToken, refreshToken },
+        verificationCode,
       },
     });
   } catch (err: any) {
