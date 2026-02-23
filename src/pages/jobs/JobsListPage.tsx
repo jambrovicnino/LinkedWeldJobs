@@ -50,7 +50,7 @@ const SAMPLE_JOBS = [
 function MojeDeloCard() {
   return (
     <a
-      href='https://www.mojedelo.com/prosta-delovna-mesta/varilec'
+      href='https://www.mojedelo.com/prosta-delovna-mesta'
       target='_blank'
       rel='noopener noreferrer'
       className='block bg-white rounded-xl border-l-4 border-l-orange-500 border border-gray-100 p-5 hover:border-orange-300 hover:shadow-lg transition-all duration-200 group'
@@ -69,8 +69,14 @@ function MojeDeloCard() {
             More Welding Jobs on MojeDelo.com
           </p>
           <p className='text-sm text-gray-500 leading-relaxed'>
-            Browse <span className='font-medium text-gray-700'>varilec</span> (welder) positions on Slovenia&apos;s largest job portal — thousands of verified openings updated daily.
+            Slovenia&apos;s largest job portal — thousands of verified openings updated daily.
           </p>
+          <div className='flex items-center gap-1.5 mt-1'>
+            <Search className='h-3.5 w-3.5 text-orange-500 flex-shrink-0' />
+            <p className='text-xs text-orange-600 font-medium'>
+              Search keyword: <span className='bg-orange-50 px-1.5 py-0.5 rounded font-semibold'>&quot;varilec&quot;</span> (welder)
+            </p>
+          </div>
         </div>
 
         {/* Right — CTA */}
