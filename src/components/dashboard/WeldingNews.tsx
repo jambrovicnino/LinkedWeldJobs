@@ -166,6 +166,8 @@ export function WeldingNews() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [source, setSource] = useState<string>('');
+  const [fetchedAt, setFetchedAt] = useState<string>('');
 
   const fetchNews = async () => {
     setLoading(true);
@@ -173,6 +175,8 @@ export function WeldingNews() {
     try {
       const { data } = await api.get('/news');
       setArticles(data.data?.articles ?? []);
+      setSource(data.data?.source ?? '');
+      setFetchedAt(data.data?.fetchedAt ?? '');
     } catch {
       setError(true);
     } finally {
@@ -234,7 +238,10 @@ export function WeldingNews() {
           </div>
           <div>
             <h2 className='font-semibold text-gray-800'>Welding Industry News</h2>
-            <p className='text-[11px] text-gray-400'>Latest updates from the welding world</p>
+            <p className='text-[11px] text-gray-400'>
+              {source === 'rss' ? 'Live feed from The Fabricator' : source === 'gnews' ? 'Powered by GNews' : 'Curated articles'}
+              {fetchedAt && <> &middot; Updated {formatTimeAgo(fetchedAt)}</>}
+            </p>
           </div>
         </div>
         <Button variant='ghost' size='sm' onClick={fetchNews} className='text-gray-400 hover:text-blue-500 gap-1 transition-colors'>
