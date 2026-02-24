@@ -50,7 +50,10 @@ export default async function handler(req: any, res: any) {
     if (path === '/news' && method === 'GET') return await handleNews(req, res);
 
     // ──── HEALTH ────
-    if (path === '/health') return ok(res, { status: 'ok', app: 'LinkedWeldJobs' });
+    if (path === '/health') {
+      res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=86400');
+      return ok(res, { status: 'ok', app: 'LinkedWeldJobs' });
+    }
 
     return err(res, `Not found: ${method} /api${path}`, 404);
   } catch (e: any) {
@@ -212,6 +215,7 @@ function parseJob(j: any) {
 }
 
 async function handleJobs(req: any, res: any) {
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
   const db = getDb();
   const { search, country, jobType, weldingType, limit = '20', offset = '0' } = req.query as any;
   let jobs = db.findAll('jobs', (j: any) => j.isActive);
@@ -234,6 +238,7 @@ async function handleJobs(req: any, res: any) {
 }
 
 async function handleJobById(req: any, res: any, id: string) {
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
   const job = getDb().findOne('jobs', (j: any) => j.id === parseInt(id));
   if (!job) return err(res, 'Job not found', 404);
   return ok(res, parseJob(job));
@@ -356,7 +361,7 @@ async function fetchJoobleJobs(): Promise<any[]> {
 }
 
 async function handleLiveJobs(req: any, res: any) {
-  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+  res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=43200');
 
   if (liveJobsCache && (Date.now() - liveJobsCache.fetchedAt) < LIVE_JOBS_CACHE_TTL) {
     return ok(res, liveJobsCache.data);
@@ -592,7 +597,7 @@ async function fetchRSSArticles(): Promise<any[]> {
 
 async function handleNews(req: any, res: any) {
   // Edge caching: 1 hour fresh, serve stale up to 2 hours while revalidating
-  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+  res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=43200');
 
   // Check in-memory cache first
   if (newsCache && (Date.now() - newsCache.fetchedAt) < NEWS_CACHE_TTL) {
