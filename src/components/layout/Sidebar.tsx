@@ -70,7 +70,7 @@ export function Sidebar() {
               <div className='h-9 w-9 rounded-xl bg-white/20 flex items-center justify-center'>
                 <Flame className='h-5 w-5 text-white' />
               </div>
-              <span className='font-bold text-lg text-white'>WeldJobs</span>
+              <span className='font-bold text-lg text-white'>LinkedWeldJobs</span>
             </Link>
           )}
           {sidebarCollapsed && (

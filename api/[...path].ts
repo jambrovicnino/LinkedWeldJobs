@@ -28,6 +28,7 @@ export default async function handler(req: any, res: any) {
     if (path === '/auth/logout' && method === 'POST') return await handleLogout(req, res);
 
     // ──── JOBS ────
+    if (path === '/jobs/live' && method === 'GET') return await handleLiveJobs(req, res);
     if (path === '/jobs' && method === 'GET') return await handleJobs(req, res);
     if (path === '/jobs/user/saved' && method === 'GET') return await handleSavedJobs(req, res);
     const jobSaveMatch = path.match(/^\/jobs\/(\d+)\/save$/);
@@ -262,6 +263,141 @@ async function handleToggleSave(req: any, res: any, jobId: string) {
   }
   db.insert('saved_jobs', { job_id: jId, user_id: auth.userId });
   return ok(res, { saved: true });
+}
+
+// ──────────── LIVE JOBS (Jooble API) ────────────
+
+let liveJobsCache: { data: any; fetchedAt: number } | null = null;
+const LIVE_JOBS_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+const JOOBLE_COUNTRIES = ['Germany', 'Poland', 'Netherlands', 'Austria', 'France', 'Norway', 'Sweden', 'Slovenia', 'Switzerland'];
+
+function mapJoobleJob(job: any, index: number): any {
+  return {
+    id: `jooble-${job.id || index}`,
+    title: job.title || 'Welding Position',
+    company: job.company || 'Company',
+    location: job.location || '',
+    country: extractCountry(job.location || ''),
+    jobType: job.type || 'Full-time',
+    experienceLevel: 'Mid-Level',
+    weldingTypes: extractWeldingTypes(job.title || '', job.snippet || ''),
+    industry: 'Manufacturing',
+    salaryMin: null,
+    salaryMax: null,
+    salary: job.salary || null,
+    description: job.snippet || '',
+    requirements: [],
+    benefits: [],
+    certifications: [],
+    postedAt: job.updated || new Date().toISOString(),
+    isActive: true,
+    applicationCount: 0,
+    source: 'jooble',
+    externalLink: job.link || null,
+    sourceBoard: job.source || 'Jooble',
+  };
+}
+
+function extractCountry(location: string): string {
+  for (const country of JOOBLE_COUNTRIES) {
+    if (location.toLowerCase().includes(country.toLowerCase())) return country;
+  }
+  // Try common variants
+  if (location.toLowerCase().includes('deutschland')) return 'Germany';
+  if (location.toLowerCase().includes('österreich')) return 'Austria';
+  if (location.toLowerCase().includes('schweiz')) return 'Switzerland';
+  if (location.toLowerCase().includes('norge')) return 'Norway';
+  if (location.toLowerCase().includes('slovenija')) return 'Slovenia';
+  return '';
+}
+
+function extractWeldingTypes(title: string, desc: string): string[] {
+  const text = `${title} ${desc}`.toLowerCase();
+  const types: string[] = [];
+  if (text.includes('tig') || text.includes('gtaw')) types.push('TIG');
+  if (text.includes('mig') || text.includes('gmaw')) types.push('MIG');
+  if (text.includes('mag')) types.push('MIG');
+  if (text.includes('stick') || text.includes('smaw') || text.includes('mma')) types.push('Stick (SMAW)');
+  if (text.includes('flux') || text.includes('fcaw')) types.push('Flux-Cored (FCAW)');
+  if (text.includes('orbital')) types.push('Orbital');
+  if (text.includes('laser')) types.push('Laser');
+  if (text.includes('plasma')) types.push('Plasma');
+  if (types.length === 0) types.push('General');
+  return types;
+}
+
+async function fetchJoobleJobs(): Promise<any[]> {
+  const apiKey = process.env.JOOBLE_API_KEY;
+  if (!apiKey) return [];
+
+  const allJobs: any[] = [];
+
+  // Fetch from multiple countries in parallel
+  const fetches = JOOBLE_COUNTRIES.map(async (country) => {
+    try {
+      const response = await fetch(`https://jooble.org/api/${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords: 'welder', location: country, page: '1' }),
+      });
+      if (!response.ok) throw new Error(`Jooble ${response.status}`);
+      const json: any = await response.json();
+      return (json.jobs || []).slice(0, 5); // max 5 per country
+    } catch (e: any) {
+      console.error(`Jooble fetch [${country}]:`, e?.message);
+      return [];
+    }
+  });
+
+  const results = await Promise.all(fetches);
+  results.forEach(jobs => allJobs.push(...jobs));
+  return allJobs;
+}
+
+async function handleLiveJobs(req: any, res: any) {
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+
+  if (liveJobsCache && (Date.now() - liveJobsCache.fetchedAt) < LIVE_JOBS_CACHE_TTL) {
+    return ok(res, liveJobsCache.data);
+  }
+
+  try {
+    // 1. Try Jooble API
+    const joobleJobs = await fetchJoobleJobs();
+
+    if (joobleJobs.length > 0) {
+      const mapped = joobleJobs.map(mapJoobleJob);
+      // Deduplicate by title+company
+      const seen = new Set<string>();
+      const unique = mapped.filter((j: any) => {
+        const key = `${j.title.toLowerCase()}-${j.company.toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      const data = { jobs: unique.slice(0, 30), total: unique.length, source: 'jooble', fetchedAt: new Date().toISOString() };
+      liveJobsCache = { data, fetchedAt: Date.now() };
+      return ok(res, data);
+    }
+
+    // 2. Fallback: return seed jobs from database
+    const db = getDb();
+    const seedJobs = db.findAll('jobs', (j: any) => j.isActive).map((j: any) => ({
+      ...parseJob(j),
+      source: 'platform',
+      externalLink: null,
+      sourceBoard: 'LinkedWeldJobs',
+    }));
+    const data = { jobs: seedJobs, total: seedJobs.length, source: 'platform', fetchedAt: new Date().toISOString() };
+    return ok(res, data);
+  } catch (e: any) {
+    console.error('Live jobs error:', e?.message);
+    // Emergency fallback
+    const db = getDb();
+    const seedJobs = db.findAll('jobs', (j: any) => j.isActive).map(parseJob);
+    return ok(res, { jobs: seedJobs, total: seedJobs.length, source: 'platform', fetchedAt: new Date().toISOString() });
+  }
 }
 
 // ──────────── APPLICATIONS ────────────

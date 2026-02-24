@@ -36,7 +36,7 @@ export interface RegisterPayload {
 }
 
 export interface Job {
-  id: number;
+  id: number | string;
   title: string;
   company: string;
   companyLogo?: string;
@@ -46,8 +46,9 @@ export interface Job {
   experienceLevel: string;
   weldingTypes: string[];
   industry: string;
-  salaryMin?: number;
-  salaryMax?: number;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  salary?: string | null;
   currency?: string;
   description: string;
   requirements: string[];
@@ -59,6 +60,9 @@ export interface Job {
   applicationCount: number;
   isSaved?: boolean;
   hasApplied?: boolean;
+  source?: 'platform' | 'jooble';
+  externalLink?: string | null;
+  sourceBoard?: string;
 }
 
 export interface Application {
